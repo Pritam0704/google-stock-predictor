@@ -1,0 +1,23 @@
+# Claude
+.claude/
+
+# PowerPoint / Office temp files
+*.pptx
+~$*
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# macOS
+.DS_Store
+
+# Jupyter
+.ipynb_checkpoints/
