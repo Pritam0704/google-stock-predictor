@@ -4,557 +4,694 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Google Stock Price Predictor</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --navy:   #0D1B2A;
-      --teal:   #1C7293;
-      --green:  #2A9D8F;
-      --red:    #E63946;
-      --white:  #FFFFFF;
-      --light:  #F5F7FA;
-      --gray:   #94A3B8;
-      --dark:   #1E293B;
-      --card:   #FFFFFF;
-      --border: #E2E8F0;
+      --bg:       #0f1117;
+      --surface:  #1a1d27;
+      --surface2: #20242f;
+      --border:   #2a2d3a;
+      --teal:     #00bfa5;
+      --teal-dim: rgba(0,191,165,0.12);
+      --blue:     #2962ff;
+      --red:      #ef5350;
+      --amber:    #f59e0b;
+      --green:    #26a69a;
+      --white:    #e8eaf0;
+      --muted:    #6b7280;
+      --card-shadow: 0 4px 24px rgba(0,0,0,0.4);
     }
 
     body {
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      background: var(--light);
-      color: var(--dark);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--white);
       min-height: 100vh;
     }
 
-    /* ── Header ───────────────────────────────────────── */
+    /* ── Header ─────────────────────────────────────── */
     header {
-      background: var(--navy);
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
       padding: 0 2rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      height: 64px;
-      border-bottom: 3px solid var(--teal);
+      height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+      backdrop-filter: blur(12px);
     }
     .logo {
-      display: flex; align-items: center; gap: 0.75rem;
-      font-size: 1.2rem; font-weight: 700; color: var(--white);
+      display: flex; align-items: center; gap: 0.6rem;
+      font-size: 1.05rem; font-weight: 700; color: var(--white);
+      letter-spacing: -0.01em;
     }
-    .logo span { color: var(--teal); }
-    .badge {
-      background: var(--teal);
-      color: white; font-size: 0.72rem; font-weight: 600;
-      padding: 0.25rem 0.65rem; border-radius: 20px;
+    .logo-icon {
+      width: 30px; height: 30px;
+      background: linear-gradient(135deg, var(--teal), #0097a7);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.9rem;
     }
-
-    /* ── Layout ───────────────────────────────────────── */
-    main {
-      max-width: 1180px;
-      margin: 0 auto;
-      padding: 2rem 1.5rem;
-      display: grid;
-      grid-template-columns: 380px 1fr;
-      gap: 1.5rem;
-    }
-
-    @media (max-width: 860px) {
-      main { grid-template-columns: 1fr; }
-    }
-
-    /* ── Cards ────────────────────────────────────────── */
-    .card {
-      background: var(--card);
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-      padding: 1.5rem;
-    }
-    .card-title {
-      font-size: 0.8rem; font-weight: 700; letter-spacing: .08em;
-      text-transform: uppercase; color: var(--gray);
-      margin-bottom: 1.2rem;
-      padding-bottom: 0.6rem;
-      border-bottom: 1px solid var(--border);
-    }
-
-    /* ── Form ─────────────────────────────────────────── */
-    .form-group { margin-bottom: 1rem; }
-    label {
-      display: block; font-size: 0.82rem; font-weight: 600;
-      color: var(--dark); margin-bottom: 0.35rem;
-    }
-    input[type="number"], input[type="date"] {
-      width: 100%; padding: 0.6rem 0.85rem;
-      border: 1.5px solid var(--border); border-radius: 8px;
-      font-size: 0.95rem; color: var(--dark); background: var(--light);
-      transition: border-color .2s;
-      -moz-appearance: textfield;
-    }
-    input[type="number"]:focus, input[type="date"]:focus {
-      outline: none; border-color: var(--teal);
-      background: #fff;
-    }
-
-    /* ── Auto-fill row ────────────────────────────────── */
-    .autofill-row {
-      display: flex; gap: 0.5rem; align-items: flex-end;
-      margin-bottom: 1.2rem;
-      padding-bottom: 1.2rem;
-      border-bottom: 1px solid var(--border);
-    }
-    .autofill-row .form-group { margin-bottom: 0; flex: 1; }
-    .btn-fetch {
-      padding: 0.6rem 1rem;
-      background: var(--green); color: white;
-      border: none; border-radius: 8px;
-      font-size: 0.88rem; font-weight: 700;
-      cursor: pointer; white-space: nowrap;
-      transition: background .2s;
-      display: flex; align-items: center; gap: 0.4rem;
-    }
-    .btn-fetch:hover  { background: #21867a; }
-    .btn-fetch:disabled { background: var(--gray); cursor: not-allowed; }
-    .fetch-status {
-      font-size: 0.78rem; margin-top: 0.4rem;
-      color: var(--gray); min-height: 1.1em;
-    }
-    .fetch-status.ok  { color: var(--green); }
-    .fetch-status.err { color: var(--red); }
-
-    .input-grid {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;
-    }
-    .full { grid-column: 1 / -1; }
-
-    .hint { font-size: 0.74rem; color: var(--gray); margin-top: 0.25rem; }
-
-    /* ── Predict Button ───────────────────────────────── */
-    .btn-predict {
-      width: 100%; padding: 0.85rem;
-      background: var(--teal); color: white;
-      border: none; border-radius: 10px;
-      font-size: 1rem; font-weight: 700;
-      cursor: pointer; margin-top: 0.5rem;
-      transition: background .2s, transform .1s;
-      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-    }
-    .btn-predict:hover { background: #155e75; }
-    .btn-predict:active { transform: scale(.98); }
-    .btn-predict:disabled { background: var(--gray); cursor: not-allowed; }
-
-    /* ── Spinner ──────────────────────────────────────── */
-    .spinner {
-      width: 18px; height: 18px;
-      border: 2px solid rgba(255,255,255,.3);
-      border-top-color: white;
-      border-radius: 50%;
-      animation: spin .7s linear infinite;
-      display: none;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* ── Result Panel ─────────────────────────────────── */
-    #result { margin-top: 1.25rem; display: none; }
-
-    .result-main {
-      background: var(--navy);
-      border-radius: 10px;
-      padding: 1.2rem 1.4rem;
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 1rem;
-    }
-    .result-label { font-size: 0.78rem; color: var(--gray); font-weight: 600; text-transform: uppercase; }
-    .result-price { font-size: 2.2rem; font-weight: 800; color: white; line-height: 1; }
-    .change-badge {
-      font-size: 0.95rem; font-weight: 700;
+    .logo-sub { color: var(--muted); font-weight: 400; font-size: 0.82rem; margin-left: 0.2rem; }
+    .header-right { display: flex; align-items: center; gap: 1rem; }
+    .header-pill {
+      background: var(--teal-dim);
+      border: 1px solid rgba(0,191,165,0.25);
+      color: var(--teal);
+      font-size: 0.72rem; font-weight: 700;
       padding: 0.3rem 0.75rem; border-radius: 20px;
-      display: inline-flex; align-items: center; gap: 0.3rem;
+      letter-spacing: 0.03em;
     }
-    .up   { background: rgba(42,157,143,.2); color: #2A9D8F; }
-    .down { background: rgba(230,57,70,.15); color: var(--red); }
+    .header-stat {
+      font-size: 0.78rem; color: var(--muted);
+      display: flex; align-items: center; gap: 0.3rem;
+    }
+    .header-stat strong { color: var(--white); }
 
-    .indicators {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem;
+    /* ── Layout ──────────────────────────────────────── */
+    main {
+      max-width: 1260px;
+      margin: 0 auto;
+      padding: 1.5rem;
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 1.25rem;
+      align-items: start;
     }
-    .ind-card {
-      background: var(--light); border: 1px solid var(--border);
-      border-radius: 8px; padding: 0.6rem 0.8rem;
-    }
-    .ind-label { font-size: 0.7rem; color: var(--gray); font-weight: 600; }
-    .ind-value { font-size: 1.0rem; font-weight: 700; color: var(--dark); margin-top: 0.1rem; }
+    @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
 
-    /* ── Side-by-side comparison ─────────────────────── */
-    .compare-side {
+    /* ── Left panel ──────────────────────────────────── */
+    .left-panel { display: flex; flex-direction: column; gap: 1.25rem; }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.25rem;
+      box-shadow: var(--card-shadow);
+    }
+
+    .panel-title {
+      font-size: 0.7rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .1em;
+      color: var(--muted);
+      margin-bottom: 1.1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .panel-title::before {
+      content: ''; display: block;
+      width: 3px; height: 14px;
+      background: var(--teal);
+      border-radius: 2px;
+    }
+
+    /* ── Date Picker ─────────────────────────────────── */
+    .date-picker-wrap {
+      position: relative;
+    }
+    .date-label {
+      font-size: 0.75rem; font-weight: 600; color: var(--muted);
+      margin-bottom: 0.4rem; display: flex; justify-content: space-between;
+    }
+    .date-range-hint {
+      font-size: 0.68rem; color: var(--muted);
+      background: var(--surface2); border: 1px solid var(--border);
+      padding: 0.15rem 0.5rem; border-radius: 4px;
+    }
+    input[type="date"] {
+      width: 100%;
+      padding: 0.7rem 1rem;
+      background: var(--surface2);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      color: var(--white);
+      font-size: 1rem; font-weight: 600;
+      cursor: pointer;
+      transition: border-color .2s, box-shadow .2s;
+      color-scheme: dark;
+    }
+    input[type="date"]:focus {
+      outline: none;
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(0,191,165,0.15);
+    }
+    .date-status {
+      margin-top: 0.5rem; font-size: 0.75rem; min-height: 1.2em;
+      display: flex; align-items: center; gap: 0.35rem;
+    }
+    .date-status.loading { color: var(--muted); }
+    .date-status.ok      { color: var(--teal); }
+    .date-status.err     { color: var(--red); }
+
+    /* loading dots */
+    .dots span {
+      display: inline-block; width: 4px; height: 4px;
+      background: var(--muted); border-radius: 50%;
+      margin: 0 1px;
+      animation: bounce 1.2s infinite;
+    }
+    .dots span:nth-child(2) { animation-delay: .2s; }
+    .dots span:nth-child(3) { animation-delay: .4s; }
+    @keyframes bounce {
+      0%, 80%, 100% { transform: translateY(0); opacity:.4; }
+      40%            { transform: translateY(-4px); opacity:1; }
+    }
+
+    /* ── OHLCV Fields ────────────────────────────────── */
+    .ohlcv-grid {
       display: grid; grid-template-columns: 1fr 1fr;
       gap: 0.6rem; margin-top: 1rem;
     }
+    .field-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.65rem 0.85rem;
+      transition: border-color .2s;
+    }
+    .field-box.full { grid-column: 1 / -1; }
+    .field-box:focus-within { border-color: var(--teal); }
+    .field-box label {
+      display: block; font-size: 0.65rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .07em;
+      color: var(--muted); margin-bottom: 0.2rem;
+    }
+    .field-box input[type="number"] {
+      width: 100%; background: transparent; border: none;
+      color: var(--white); font-size: 1rem; font-weight: 700;
+      padding: 0; outline: none;
+      -moz-appearance: textfield;
+    }
+    .field-box input[type="number"]::-webkit-inner-spin-button { display: none; }
+    .field-filled { border-color: rgba(0,191,165,0.35) !important; }
+
+    /* ── Predict Button ──────────────────────────────── */
+    .btn-predict {
+      width: 100%; margin-top: 1rem;
+      padding: 0.9rem;
+      background: linear-gradient(135deg, #00bfa5, #0097a7);
+      color: #fff; border: none; border-radius: 11px;
+      font-size: 0.95rem; font-weight: 700;
+      cursor: pointer; letter-spacing: 0.02em;
+      display: flex; align-items: center; justify-content: center; gap: 0.6rem;
+      transition: opacity .2s, transform .1s;
+      box-shadow: 0 4px 16px rgba(0,191,165,0.3);
+    }
+    .btn-predict:hover   { opacity: 0.9; }
+    .btn-predict:active  { transform: scale(.98); }
+    .btn-predict:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,.3);
+      border-top-color: white; border-radius: 50%;
+      animation: spin .7s linear infinite; display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Error ───────────────────────────────────────── */
+    .error-msg {
+      background: rgba(239,83,80,.1);
+      border: 1px solid rgba(239,83,80,.3);
+      color: var(--red); border-radius: 8px;
+      padding: 0.7rem 0.9rem; font-size: 0.82rem;
+      margin-top: 0.75rem; display: none;
+    }
+
+    /* ── Result ──────────────────────────────────────── */
+    #result { display: none; margin-top: 1.1rem; }
+
+    /* Side-by-side */
+    .cmp-side {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem;
+    }
     .cmp-box {
-      border-radius: 10px; padding: 0.9rem 1rem;
-      display: flex; flex-direction: column; gap: 0.2rem;
+      border-radius: 12px; padding: 1rem;
+      display: flex; flex-direction: column; gap: 0.25rem;
+      position: relative; overflow: hidden;
+    }
+    .cmp-box::before {
+      content: ''; position: absolute;
+      top: 0; left: 0; right: 0; height: 2px;
+      border-radius: 12px 12px 0 0;
     }
     .cmp-box.predicted {
-      background: rgba(28,114,147,0.08);
-      border: 1.5px solid rgba(28,114,147,0.35);
+      background: rgba(41,98,255,0.1);
+      border: 1px solid rgba(41,98,255,0.3);
     }
+    .cmp-box.predicted::before { background: var(--blue); }
     .cmp-box.actual {
-      background: rgba(42,157,143,0.08);
-      border: 1.5px solid rgba(42,157,143,0.35);
+      background: rgba(0,191,165,0.08);
+      border: 1px solid rgba(0,191,165,0.3);
     }
-    .cmp-box.actual.worse {
-      background: rgba(230,57,70,0.06);
-      border-color: rgba(230,57,70,0.3);
+    .cmp-box.actual::before { background: var(--teal); }
+    .cmp-box.actual.miss {
+      background: rgba(239,83,80,0.07);
+      border-color: rgba(239,83,80,0.3);
     }
+    .cmp-box.actual.miss::before { background: var(--red); }
     .cmp-tag {
-      font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: .07em;
+      font-size: 0.65rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .08em;
     }
-    .cmp-box.predicted .cmp-tag { color: var(--teal); }
-    .cmp-box.actual     .cmp-tag { color: var(--green); }
-    .cmp-box.actual.worse .cmp-tag { color: var(--red); }
-    .cmp-date { font-size: 0.72rem; color: var(--gray); margin-bottom: 0.15rem; }
+    .cmp-box.predicted .cmp-tag { color: #6b8fff; }
+    .cmp-box.actual     .cmp-tag { color: var(--teal); }
+    .cmp-box.actual.miss .cmp-tag { color: var(--red); }
+    .cmp-date { font-size: 0.7rem; color: var(--muted); }
     .cmp-price {
-      font-size: 1.85rem; font-weight: 800; line-height: 1; color: var(--dark);
+      font-size: 1.8rem; font-weight: 800;
+      line-height: 1.1; letter-spacing: -0.02em;
+      color: var(--white);
     }
-    .cmp-box.predicted .cmp-price { color: var(--teal); }
-    .cmp-delta {
-      font-size: 0.78rem; font-weight: 600; margin-top: 0.3rem;
-    }
+    .cmp-delta { font-size: 0.75rem; font-weight: 600; margin-top: 0.1rem; }
 
-    /* divider + error row */
-    .cmp-error-row {
-      display: flex; align-items: center; justify-content: space-between;
-      background: var(--light); border: 1px solid var(--border);
-      border-radius: 8px; padding: 0.6rem 0.9rem;
-      margin-top: 0.6rem; font-size: 0.82rem;
+    /* Error stats */
+    .err-stats {
+      display: grid; grid-template-columns: repeat(3,1fr);
+      gap: 0.5rem; margin-top: 0.6rem;
     }
-    .cmp-error-row .lbl { color: var(--gray); font-weight: 600; }
-    .cmp-error-row .val { font-weight: 700; color: var(--dark); }
+    .err-stat {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 0.55rem 0.7rem;
+      text-align: center;
+    }
+    .err-stat .es-lbl { font-size: 0.62rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing:.05em; }
+    .err-stat .es-val { font-size: 0.92rem; font-weight: 800; color: var(--white); margin-top: 0.1rem; }
 
-    /* accuracy bar */
-    .accuracy-bar-wrap {
+    /* Accuracy bar */
+    .acc-wrap {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 0.7rem 0.85rem;
       margin-top: 0.6rem;
-      background: var(--light); border-radius: 8px;
-      padding: 0.7rem 0.9rem;
-      border: 1px solid var(--border);
     }
-    .accuracy-bar-label {
+    .acc-header {
       display: flex; justify-content: space-between;
-      font-size: 0.75rem; color: var(--gray); margin-bottom: 0.4rem;
-      font-weight: 600;
+      font-size: 0.72rem; font-weight: 700;
+      color: var(--muted); margin-bottom: 0.5rem;
     }
-    .accuracy-bar-track {
-      height: 7px; background: var(--border); border-radius: 4px; overflow: hidden;
+    .acc-header span:last-child { color: var(--white); font-size: 0.88rem; }
+    .acc-track {
+      height: 6px; background: var(--border);
+      border-radius: 3px; overflow: hidden;
     }
-    .accuracy-bar-fill {
-      height: 100%; border-radius: 4px; transition: width .7s ease;
+    .acc-fill {
+      height: 100%; border-radius: 3px;
+      transition: width .8s cubic-bezier(.4,0,.2,1);
     }
+
+    /* Indicators */
+    .ind-grid {
+      display: grid; grid-template-columns: repeat(3,1fr);
+      gap: 0.5rem; margin-top: 0.75rem;
+    }
+    .ind-card {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 0.55rem 0.75rem;
+    }
+    .ind-label { font-size: 0.62rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing:.05em; }
+    .ind-value { font-size: 0.95rem; font-weight: 800; color: var(--white); margin-top: 0.1rem; }
+
     #realPriceNote {
-      font-size: 0.75rem; color: var(--gray);
+      font-size: 0.73rem; color: var(--muted);
       margin-top: 0.5rem; font-style: italic;
     }
 
-    /* ── Error ────────────────────────────────────────── */
-    .error-msg {
-      background: rgba(230,57,70,.1); border: 1px solid rgba(230,57,70,.3);
-      color: var(--red); border-radius: 8px; padding: 0.8rem 1rem;
-      font-size: 0.88rem; margin-top: 1rem; display: none;
+    /* ── History Table ───────────────────────────────── */
+    .history-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 0.9rem;
+    }
+    .history-count {
+      font-size: 0.7rem; color: var(--muted); font-weight: 600;
+      background: var(--surface2); border: 1px solid var(--border);
+      padding: 0.2rem 0.55rem; border-radius: 20px;
+    }
+    .btn-reset {
+      padding: 0.3rem 0.75rem;
+      background: rgba(239,83,80,0.1);
+      border: 1px solid rgba(239,83,80,0.35);
+      color: var(--red); border-radius: 6px;
+      font-size: 0.72rem; font-weight: 700;
+      cursor: pointer; transition: background .15s;
+    }
+    .btn-reset:hover { background: rgba(239,83,80,0.2); }
+
+    .history-table-wrap {
+      overflow-y: auto; max-height: 320px;
+      border-radius: 8px; border: 1px solid var(--border);
+      scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+    }
+    .history-table {
+      width: 100%; border-collapse: collapse; font-size: 0.75rem;
+    }
+    .history-table thead th {
+      position: sticky; top: 0;
+      background: var(--surface2);
+      padding: 0.5rem 0.6rem;
+      text-align: left; font-weight: 700;
+      font-size: 0.62rem; text-transform: uppercase; letter-spacing: .05em;
+      color: var(--muted); border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .history-table tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background .1s;
+    }
+    .history-table tbody tr:last-child { border-bottom: none; }
+    .history-table tbody tr:hover { background: var(--surface2); }
+    .history-table td {
+      padding: 0.48rem 0.6rem; color: var(--white);
+      font-weight: 600; white-space: nowrap;
+    }
+    .history-table td.td-date  { color: var(--muted); font-weight: 500; }
+    .history-table td.td-pred  { color: #6b8fff; }
+    .history-table td.td-act   { color: var(--teal); }
+    .td-acc-chip {
+      display: inline-block; padding: 0.1rem 0.45rem;
+      border-radius: 4px; font-size: 0.7rem; font-weight: 800;
+    }
+    .acc-great { background: rgba(0,191,165,.15); color: var(--teal); }
+    .acc-ok    { background: rgba(245,158,11,.15); color: var(--amber); }
+    .acc-poor  { background: rgba(239,83,80,.15);  color: var(--red); }
+
+    .history-empty {
+      text-align: center; padding: 2rem 1rem;
+      color: var(--muted); font-size: 0.8rem;
     }
 
-    /* ── Right Column ─────────────────────────────────── */
-    .right-col { display: flex; flex-direction: column; gap: 1.5rem; }
+    /* Summary bar */
+    .history-summary {
+      display: grid; grid-template-columns: repeat(3,1fr);
+      gap: 0.5rem; margin-top: 0.75rem;
+    }
+    .sum-card {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 0.6rem 0.75rem; text-align: center;
+    }
+    .sum-card .s-lbl { font-size: 0.6rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing:.05em; }
+    .sum-card .s-val { font-size: 1rem; font-weight: 800; color: var(--white); margin-top: 0.15rem; }
 
-    /* ── Chart ────────────────────────────────────────── */
+    /* ── Right column ────────────────────────────────── */
+    .right-col { display: flex; flex-direction: column; gap: 1.25rem; }
+
+    /* ── Chart card ──────────────────────────────────── */
     .chart-card {
       background: #131722;
       border: 1px solid #1e222d;
-      border-radius: 12px;
-      padding: 1.25rem 1.25rem 1rem;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+      border-radius: 14px;
+      padding: 1.25rem;
+      box-shadow: var(--card-shadow);
     }
-    .chart-card .card-title { color: #787b86; border-bottom-color: #1e222d; }
     .chart-header {
-      display: flex; align-items: center; justify-content: space-between;
+      display: flex; align-items: flex-start; justify-content: space-between;
       margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;
     }
-    .chart-ticker {
-      display: flex; align-items: baseline; gap: 0.5rem;
-    }
-    .chart-ticker .symbol { font-size: 1rem; font-weight: 700; color: #d1d4dc; }
-    .chart-ticker .exchange { font-size: 0.72rem; color: #787b86; }
-    .chart-live-price { font-size: 1.5rem; font-weight: 800; color: #d1d4dc; }
-    .chart-live-price .chg { font-size: 0.8rem; font-weight: 600; margin-left: 0.4rem; }
-    .chg.up   { color: #26a69a; }
-    .chg.down { color: #ef5350; }
+    .chart-symbol { font-size: 1.1rem; font-weight: 800; color: #d1d4dc; }
+    .chart-exch   { font-size: 0.7rem; color: #4b5563; margin-top: 0.1rem; }
+    .chart-price  { font-size: 1.6rem; font-weight: 800; color: #d1d4dc; margin-top: 0.15rem; }
+    .chart-chg    { font-size: 0.8rem; font-weight: 600; margin-left: 0.3rem; }
+    .chg-up   { color: #26a69a; }
+    .chg-down { color: #ef5350; }
 
-    /* Duration buttons */
-    .duration-btns {
-      display: flex; gap: 0.25rem;
-    }
+    .chart-controls { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    .dur-btns { display: flex; gap: 0.2rem; }
     .dur-btn {
-      padding: 0.25rem 0.55rem;
-      background: transparent; color: #787b86;
-      border: 1px solid #2a2e39;
-      border-radius: 4px; font-size: 0.75rem; font-weight: 600;
+      padding: 0.22rem 0.5rem;
+      background: transparent; color: #4b5563;
+      border: 1px solid #2a2e39; border-radius: 4px;
+      font-size: 0.72rem; font-weight: 700;
       cursor: pointer; transition: all .15s;
     }
-    .dur-btn:hover { background: #1e222d; color: #d1d4dc; }
+    .dur-btn:hover  { background: #1e222d; color: #d1d4dc; }
     .dur-btn.active { background: #2962ff; color: #fff; border-color: #2962ff; }
 
-    .chart-wrap { position: relative; height: 320px; }
+    .type-btns { display: flex; gap: 0.2rem; margin-left: 0.5rem; padding-left: 0.5rem; border-left: 1px solid #2a2e39; }
+    .type-btn {
+      padding: 0.22rem 0.55rem;
+      background: transparent; color: #4b5563;
+      border: 1px solid #2a2e39; border-radius: 4px;
+      font-size: 0.72rem; font-weight: 700;
+      cursor: pointer; transition: all .15s; display: flex; align-items: center; gap: 0.25rem;
+    }
+    .type-btn:hover  { background: #1e222d; color: #d1d4dc; }
+    .type-btn.active { background: #1e2a1e; color: #26a69a; border-color: #26a69a; }
 
-    /* ── Model Info ───────────────────────────────────── */
-    .model-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem;
-    }
-    .model-stat {
-      text-align: center; padding: 0.8rem;
-      background: var(--light); border-radius: 8px;
-      border: 1px solid var(--border);
-    }
-    .model-stat .val { font-size: 1.4rem; font-weight: 800; color: var(--teal); }
-    .model-stat .lbl { font-size: 0.72rem; color: var(--gray); margin-top: 0.2rem; }
+    .chart-wrap { position: relative; height: 360px; }
+    .chart-wrap > div { border-radius: 0 0 10px 10px; }
 
-    /* ── How It Works ─────────────────────────────────── */
-    .steps { display: flex; flex-direction: column; gap: 0.75rem; }
-    .step {
-      display: flex; align-items: flex-start; gap: 0.85rem;
+    /* ── Model Stats ─────────────────────────────────── */
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(3,1fr); gap: 0.75rem;
     }
-    .step-num {
-      width: 28px; height: 28px; min-width: 28px;
-      background: var(--teal); color: white;
-      border-radius: 50%; font-size: 0.8rem; font-weight: 700;
-      display: flex; align-items: center; justify-content: center;
+    .stat-card {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 0.85rem; text-align: center;
     }
-    .step-text strong { display: block; font-size: 0.88rem; color: var(--dark); }
-    .step-text span   { font-size: 0.8rem; color: var(--gray); }
+    .stat-val { font-size: 1.45rem; font-weight: 800; color: var(--teal); letter-spacing:-0.01em; }
+    .stat-lbl { font-size: 0.68rem; color: var(--muted); margin-top: 0.2rem; font-weight: 600; text-transform:uppercase; letter-spacing:.05em; }
 
+    /* ── Footer ──────────────────────────────────────── */
     footer {
       text-align: center; padding: 1.5rem;
-      font-size: 0.78rem; color: var(--gray);
-      border-top: 1px solid var(--border); margin-top: 1rem;
+      font-size: 0.74rem; color: var(--muted);
+      border-top: 1px solid var(--border);
     }
   </style>
 </head>
 <body>
 
-<!-- ── Header ──────────────────────────────────────────────────────── -->
+<!-- Header -->
 <header>
   <div class="logo">
-    📈 <span>Google</span>&nbsp;Stock Predictor
+    <div class="logo-icon">📈</div>
+    Google Stock Predictor
+    <span class="logo-sub">/ Data Mining Project</span>
   </div>
-  <span class="badge">Linear Regression + Technical Indicators · R² 0.9349</span>
+  <div class="header-right">
+    <div class="header-stat">Dataset <strong>2012 – 2016</strong></div>
+    <div class="header-stat">Model <strong>Linear Regression</strong></div>
+    <div class="header-pill">R² 0.9349</div>
+  </div>
 </header>
 
-<!-- ── Main ────────────────────────────────────────────────────────── -->
+<!-- Main -->
 <main>
 
-  <!-- LEFT: Input Form -->
-  <aside>
+  <!-- ── LEFT PANEL ──────────────────────────────────── -->
+  <div class="left-panel">
 
-    <!-- Input Card -->
-    <div class="card" style="margin-bottom:1.5rem">
-      <div class="card-title">📥 Enter Today's OHLCV Data</div>
+    <!-- Date + OHLCV Input -->
+    <div class="panel">
+      <div class="panel-title">Select Trading Date</div>
 
-      <!-- Auto-fill by date -->
-      <div class="autofill-row">
-        <div class="form-group">
-          <label for="inp_date">Pick a Trading Date</label>
-          <input type="date" id="inp_date" max="" />
+      <div class="date-picker-wrap">
+        <div class="date-label">
+          <span>Date (auto-fetches &amp; predicts)</span>
+          <span class="date-range-hint">Jan 2012 – Dec 2016</span>
         </div>
-        <button type="button" class="btn-fetch" id="btnFetch">
-          <span id="fetchText">⬇ Auto-Fill</span>
-          <div class="spinner" id="fetchSpinner"></div>
-        </button>
+        <input type="date" id="inp_date"
+               min="2012-01-03" max="2016-12-30" />
+        <div class="date-status" id="dateStatus"></div>
       </div>
-      <div class="fetch-status" id="fetchStatus"></div>
 
-      <form id="predictForm" novalidate>
-        <div class="input-grid">
-          <div class="form-group">
-            <label for="inp_open">Open ($)</label>
-            <input type="number" id="inp_open" step="0.01" value="{{ last_open }}" required />
-          </div>
-          <div class="form-group">
-            <label for="inp_high">High ($)</label>
-            <input type="number" id="inp_high" step="0.01" value="{{ last_high }}" required />
-          </div>
-          <div class="form-group">
-            <label for="inp_low">Low ($)</label>
-            <input type="number" id="inp_low" step="0.01" value="{{ last_low }}" required />
-          </div>
-          <div class="form-group">
-            <label for="inp_close">Close ($)</label>
-            <input type="number" id="inp_close" step="0.01" value="{{ last_close }}" required />
-          </div>
-          <div class="form-group full">
-            <label for="inp_volume">Volume</label>
-            <input type="number" id="inp_volume" step="1" value="{{ last_volume }}" required />
-            <p class="hint">Typical range: 1,000,000 – 10,000,000</p>
-          </div>
+      <div class="ohlcv-grid" id="ohlcvGrid">
+        <div class="field-box">
+          <label>Open</label>
+          <input type="number" id="inp_open" step="0.01" value="{{ last_open }}" placeholder="—" />
         </div>
+        <div class="field-box">
+          <label>High</label>
+          <input type="number" id="inp_high" step="0.01" value="{{ last_high }}" placeholder="—" />
+        </div>
+        <div class="field-box">
+          <label>Low</label>
+          <input type="number" id="inp_low" step="0.01" value="{{ last_low }}" placeholder="—" />
+        </div>
+        <div class="field-box">
+          <label>Close</label>
+          <input type="number" id="inp_close" step="0.01" value="{{ last_close }}" placeholder="—" />
+        </div>
+        <div class="field-box full">
+          <label>Volume</label>
+          <input type="number" id="inp_volume" step="1" value="{{ last_volume }}" placeholder="—" />
+        </div>
+      </div>
 
-        <button type="submit" class="btn-predict" id="btnPredict">
-          <span id="btnText">🔮 Predict Tomorrow's Price</span>
-          <div class="spinner" id="spinner"></div>
-        </button>
-      </form>
+      <button class="btn-predict" id="btnPredict" type="button">
+        <span id="btnText">Predict Tomorrow's Close</span>
+        <div class="spinner" id="spinner"></div>
+      </button>
 
       <div class="error-msg" id="errorMsg"></div>
 
       <!-- Result -->
       <div id="result">
 
-        <!-- Side-by-side price comparison -->
-        <div class="compare-side" id="compareSide" style="display:none">
+        <!-- Side-by-side -->
+        <div class="cmp-side" id="cmpSide" style="display:none">
           <div class="cmp-box predicted">
-            <div class="cmp-tag">Model Prediction</div>
-            <div class="cmp-date" id="cmpPredDate">—</div>
+            <div class="cmp-tag">Predicted</div>
+            <div class="cmp-date" id="cmpPredDate"></div>
             <div class="cmp-price" id="cmpPredPrice">—</div>
             <div class="cmp-delta" id="cmpPredDelta"></div>
           </div>
           <div class="cmp-box actual" id="cmpActualBox">
-            <div class="cmp-tag" id="cmpActualTag">Actual Close</div>
-            <div class="cmp-date" id="cmpActualDate">—</div>
+            <div class="cmp-tag">Actual Close</div>
+            <div class="cmp-date" id="cmpActualDate"></div>
             <div class="cmp-price" id="cmpActualPrice">—</div>
             <div class="cmp-delta" id="cmpActualDelta"></div>
           </div>
         </div>
 
-        <!-- Error metrics row -->
-        <div id="cmpErrorRow" class="cmp-error-row" style="display:none">
-          <div><span class="lbl">Abs. Error</span>&nbsp;&nbsp;<span class="val" id="cmpMAE">—</span></div>
-          <div><span class="lbl">Error %</span>&nbsp;&nbsp;<span class="val" id="cmpErrPct">—</span></div>
-          <div><span class="lbl">Difference</span>&nbsp;&nbsp;<span class="val" id="cmpDiff">—</span></div>
+        <!-- Fallback (no date) -->
+        <div id="resultFallback" style="display:none; background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:1rem; margin-top:0.1rem;">
+          <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)">Predicted Close</div>
+          <div style="font-size:2rem;font-weight:800;color:var(--white);margin:.2rem 0" id="predPrice">—</div>
+          <span class="cmp-delta" id="changeBadge"></span>
+        </div>
+
+        <!-- Error stats -->
+        <div class="err-stats" id="errStats" style="display:none">
+          <div class="err-stat">
+            <div class="es-lbl">Abs Error</div>
+            <div class="es-val" id="cmpMAE">—</div>
+          </div>
+          <div class="err-stat">
+            <div class="es-lbl">Error %</div>
+            <div class="es-val" id="cmpErrPct">—</div>
+          </div>
+          <div class="err-stat">
+            <div class="es-lbl">Difference</div>
+            <div class="es-val" id="cmpDiff">—</div>
+          </div>
         </div>
 
         <!-- Accuracy bar -->
-        <div class="accuracy-bar-wrap" id="accuracyWrap" style="display:none">
-          <div class="accuracy-bar-label">
-            <span>Accuracy for this day</span>
-            <span id="accuracyPct">—</span>
+        <div class="acc-wrap" id="accWrap" style="display:none">
+          <div class="acc-header">
+            <span>Accuracy</span>
+            <span id="accPct">—</span>
           </div>
-          <div class="accuracy-bar-track">
-            <div class="accuracy-bar-fill" id="accuracyFill" style="width:0%"></div>
-          </div>
-        </div>
-
-        <p id="realPriceNote"></p>
-
-        <!-- Fallback header when no date selected -->
-        <div id="resultHeader" class="result-main" style="display:none">
-          <div>
-            <div class="result-label">Predicted Close</div>
-            <div class="result-price" id="predPrice">—</div>
-          </div>
-          <div style="text-align:right">
-            <div class="result-label">Change vs Today</div>
-            <span class="change-badge" id="changeBadge">—</span>
+          <div class="acc-track">
+            <div class="acc-fill" id="accFill" style="width:0%"></div>
           </div>
         </div>
 
-        <div class="indicators" id="indGrid" style="margin-top:1rem">
-          <!-- filled by JS -->
-        </div>
+        <p id="realNote"></p>
+
+        <!-- Indicators -->
+        <div class="ind-grid" id="indGrid"></div>
+
       </div>
     </div>
 
-    <!-- How it works -->
-    <div class="card">
-      <div class="card-title">⚙️ How It Works</div>
-      <div class="steps">
-        <div class="step">
-          <div class="step-num">1</div>
-          <div class="step-text">
-            <strong>Pick a date or enter OHLCV</strong>
-            <span>Choose any trading date to auto-fill live data from Yahoo Finance, or enter values manually</span>
-          </div>
-        </div>
-        <div class="step">
-          <div class="step-num">2</div>
-          <div class="step-text">
-            <strong>Indicators auto-computed</strong>
-            <span>SMA-20/50, EMA-20, Bollinger Bands, RSI-14, MACD using 60-day history</span>
-          </div>
-        </div>
-        <div class="step">
-          <div class="step-num">3</div>
-          <div class="step-text">
-            <strong>Model predicts next day</strong>
-            <span>Linear Regression (trained on 1,006 days, R²=0.935) returns the forecast</span>
-          </div>
-        </div>
-        <div class="step">
-          <div class="step-num">4</div>
-          <div class="step-text">
-            <strong>Chart updates live</strong>
-            <span>See the prediction plotted against the last 60 days of price history</span>
-          </div>
-        </div>
-      </div>
-    </div>
+  </div>
 
-  </aside>
-
-  <!-- RIGHT: Chart + Model Info -->
+  <!-- ── RIGHT COLUMN ─────────────────────────────────── -->
   <div class="right-col">
 
-    <!-- Price Chart -->
+    <!-- Chart -->
     <div class="chart-card">
       <div class="chart-header">
         <div>
-          <div class="chart-ticker">
-            <span class="symbol">GOOGL</span>
-            <span class="exchange">NASDAQ · 2012–2016 Training Data</span>
-          </div>
-          <div class="chart-live-price">
+          <div class="chart-symbol">GOOGL <span style="font-size:0.7rem;font-weight:400;color:#4b5563">NASDAQ</span></div>
+          <div class="chart-exch">2012 – 2016 · Training Dataset · Prices pre-2022 split</div>
+          <div class="chart-price">
             <span id="hoverPrice">{{ last_close }}</span>
-            <span class="chg up" id="hoverChg"></span>
+            <span class="chart-chg chg-up" id="hoverChg"></span>
           </div>
         </div>
-        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:0.5rem">
-          <div class="duration-btns">
+        <div class="chart-controls">
+          <div class="dur-btns">
             <button class="dur-btn" data-days="30">1M</button>
             <button class="dur-btn" data-days="90">3M</button>
             <button class="dur-btn" data-days="180">6M</button>
             <button class="dur-btn" data-days="365">1Y</button>
             <button class="dur-btn active" data-days="0">All</button>
           </div>
+          <div class="type-btns">
+            <button class="type-btn active" id="btnCandle">▮▮ Candle</button>
+            <button class="type-btn" id="btnLine">╱ Line</button>
+          </div>
         </div>
       </div>
-      <div class="chart-wrap">
-        <canvas id="priceChart"></canvas>
+      <div class="chart-wrap" id="priceChart"></div>
+    </div>
+
+    <!-- Prediction History -->
+    <div class="panel">
+      <div class="history-header">
+        <div class="panel-title" style="margin-bottom:0;border:none;padding:0">Prediction History</div>
+        <div style="display:flex;align-items:center;gap:0.5rem">
+          <span class="history-count" id="histCount">0 / 15</span>
+          <button class="btn-reset" id="btnReset">Reset</button>
+        </div>
+      </div>
+
+      <div class="history-table-wrap">
+        <table class="history-table" id="histTable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Date</th>
+              <th>Predicted</th>
+              <th>Actual</th>
+              <th>Error</th>
+              <th>Accuracy</th>
+            </tr>
+          </thead>
+          <tbody id="histBody">
+            <tr><td colspan="6" class="history-empty">No predictions yet — pick a date to start.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="history-summary" id="histSummary" style="display:none">
+        <div class="sum-card">
+          <div class="s-lbl">Avg Accuracy</div>
+          <div class="s-val" id="sumAccuracy">—</div>
+        </div>
+        <div class="sum-card">
+          <div class="s-lbl">Avg Error</div>
+          <div class="s-val" id="sumError">—</div>
+        </div>
+        <div class="sum-card">
+          <div class="s-lbl">Best Day</div>
+          <div class="s-val" id="sumBest">—</div>
+        </div>
       </div>
     </div>
 
-    <!-- Model Stats -->
-    <div class="card">
-      <div class="card-title">🤖 Model Performance — Linear Regression + Indicators</div>
-      <div class="model-grid">
-        <div class="model-stat">
-          <div class="val">0.9349</div>
-          <div class="lbl">Test R²</div>
+    <!-- Model Stats (compact) -->
+    <div class="panel">
+      <div class="panel-title">Model Performance — Linear Regression + Indicators</div>
+      <div style="display:grid; grid-template-columns:repeat(6,1fr); gap:0.5rem">
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:0.5rem 0.4rem;text-align:center">
+          <div style="font-size:1rem;font-weight:800;color:var(--teal)">0.9349</div>
+          <div style="font-size:0.58rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-top:0.1rem">R²</div>
         </div>
-        <div class="model-stat">
-          <div class="val">$8.31</div>
-          <div class="lbl">Test RMSE</div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:0.5rem 0.4rem;text-align:center">
+          <div style="font-size:1rem;font-weight:800;color:var(--teal)">$8.31</div>
+          <div style="font-size:0.58rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-top:0.1rem">RMSE</div>
         </div>
-        <div class="model-stat">
-          <div class="val">$6.15</div>
-          <div class="lbl">Test MAE</div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:0.5rem 0.4rem;text-align:center">
+          <div style="font-size:1rem;font-weight:800;color:var(--teal)">$6.15</div>
+          <div style="font-size:0.58rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-top:0.1rem">MAE</div>
         </div>
-        <div class="model-stat">
-          <div class="val">1,006</div>
-          <div class="lbl">Train Days</div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:0.5rem 0.4rem;text-align:center">
+          <div style="font-size:1rem;font-weight:800;color:var(--teal)">1,006</div>
+          <div style="font-size:0.58rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-top:0.1rem">Train</div>
         </div>
-        <div class="model-stat">
-          <div class="val">252</div>
-          <div class="lbl">Test Days</div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:0.5rem 0.4rem;text-align:center">
+          <div style="font-size:1rem;font-weight:800;color:var(--teal)">252</div>
+          <div style="font-size:0.58rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-top:0.1rem">Test</div>
         </div>
-        <div class="model-stat">
-          <div class="val">13</div>
-          <div class="lbl">Features</div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:0.5rem 0.4rem;text-align:center">
+          <div style="font-size:1rem;font-weight:800;color:var(--teal)">13</div>
+          <div style="font-size:0.58rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-top:0.1rem">Feats</div>
         </div>
       </div>
     </div>
@@ -564,201 +701,362 @@
 
 <footer>
   Google Stock Price Predictor &nbsp;·&nbsp; Data Mining Project 2026 &nbsp;·&nbsp;
-  Model trained on 2012–2016 OHLCV data &nbsp;·&nbsp; <em>For educational purposes only</em>
+  Trained on GOOGL 2012–2016 &nbsp;·&nbsp; <em>Educational purposes only</em>
 </footer>
 
-<!-- ── Scripts ─────────────────────────────────────────────────────── -->
 <script>
-  // ── Chart Data ───────────────────────────────────────────────────
+  // ── Chart data ───────────────────────────────────────────────────
   const ALL_DATES  = {{ all_dates  | tojson }};
   const ALL_CLOSES = {{ all_closes | tojson }};
-  // last 60 days used as chart context for prediction point
-  const RECENT_DATES  = {{ recent_dates  | tojson }};
-  const RECENT_CLOSES = {{ recent_closes | tojson }};
+  const ALL_OHLCV  = {{ all_ohlcv  | tojson }};
 
-  let predictionValue = null;
+  const CANDLE_DATA = ALL_DATES.map((d, i) => ({
+    time: d,
+    open:  ALL_OHLCV[i][0],
+    high:  ALL_OHLCV[i][1],
+    low:   ALL_OHLCV[i][2],
+    close: ALL_OHLCV[i][3],
+  }));
+  const LINE_DATA = ALL_DATES.map((d, i) => ({ time: d, value: ALL_CLOSES[i] }));
 
-  // ── Gradient helper ──────────────────────────────────────────────
-  function makeGradient(ctx, chartArea) {
-    const grad = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-    grad.addColorStop(0,   'rgba(38,166,154,0.35)');
-    grad.addColorStop(0.5, 'rgba(38,166,154,0.08)');
-    grad.addColorStop(1,   'rgba(38,166,154,0.0)');
-    return grad;
-  }
+  let predictionValue  = null;
+  let predictionDate   = null;
+  let currentChartType = 'candle';
 
-  // ── Slice data by duration (days=0 means All) ────────────────────
-  function sliceData(days) {
-    if (days === 0) return { dates: ALL_DATES, closes: ALL_CLOSES };
-    const cutoff = new Date(ALL_DATES[ALL_DATES.length - 1]);
-    cutoff.setDate(cutoff.getDate() - days);
-    const cutStr = cutoff.toISOString().split('T')[0];
-    const idx = ALL_DATES.findIndex(d => d >= cutStr);
-    return { dates: ALL_DATES.slice(idx), closes: ALL_CLOSES.slice(idx) };
-  }
-
-  // ── Build chart ──────────────────────────────────────────────────
-  const ctx = document.getElementById('priceChart').getContext('2d');
-
-  let currentDays = 0;
-  let { dates: viewDates, closes: viewCloses } = sliceData(0);
-
-  const chart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: [...viewDates, 'Prediction'],
-      datasets: [
-        {
-          label: 'Close Price',
-          data: [...viewCloses, null],
-          borderColor: '#26a69a',
-          backgroundColor: function(context) {
-            const chart = context.chart;
-            const { ctx: c, chartArea } = chart;
-            if (!chartArea) return 'transparent';
-            return makeGradient(c, chartArea);
-          },
-          borderWidth: 1.5,
-          pointRadius: 0,
-          pointHoverRadius: 4,
-          pointHoverBackgroundColor: '#26a69a',
-          fill: true,
-          tension: 0.2,
-        },
-        {
-          label: 'Prediction',
-          data: [...viewCloses.map(() => null), null],
-          borderColor: '#ef5350',
-          backgroundColor: 'rgba(239,83,80,0.2)',
-          borderWidth: 2,
-          pointRadius: 7,
-          pointHoverRadius: 9,
-          pointStyle: 'rectRot',
-          pointBackgroundColor: '#ef5350',
-          pointBorderColor: '#fff',
-          pointBorderWidth: 1.5,
-          fill: false,
-          spanGaps: false,
-        }
-      ]
+  // ── Build Lightweight Chart ──────────────────────────────────────
+  const chartContainer = document.getElementById('priceChart');
+  const tvChart = LightweightCharts.createChart(chartContainer, {
+    layout:  { background: { color: '#131722' }, textColor: '#787b86' },
+    grid:    { vertLines: { color: '#1e222d' }, horzLines: { color: '#1e222d' } },
+    crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+    rightPriceScale: { borderColor: '#1e222d', scaleMargins: { top: 0.08, bottom: 0.08 } },
+    timeScale: {
+      borderColor: '#1e222d',
+      timeVisible: true,
+      rightOffset: 8,
+      fixLeftEdge: false,
+      fixRightEdge: false,
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: { duration: 400, easing: 'easeInOutQuart' },
-      interaction: { mode: 'index', intersect: false },
-      plugins: {
-        legend: {
-          position: 'top',
-          align: 'end',
-          labels: {
-            usePointStyle: true,
-            color: '#787b86',
-            font: { size: 11 },
-            boxWidth: 8,
-          }
-        },
-        tooltip: {
-          backgroundColor: '#1e222d',
-          titleColor: '#d1d4dc',
-          bodyColor: '#787b86',
-          borderColor: '#2a2e39',
-          borderWidth: 1,
-          padding: 10,
-          callbacks: {
-            title: items => items[0].label,
-            label: item => {
-              if (item.parsed.y === null) return null;
-              return ` ${item.dataset.label}: $${item.parsed.y.toFixed(2)}`;
-            }
-          }
-        }
-      },
-      scales: {
-        x: {
-          ticks: {
-            maxTicksLimit: 8,
-            color: '#787b86',
-            font: { size: 10 },
-            maxRotation: 0,
-          },
-          grid: { color: '#1e222d', drawBorder: false },
-          border: { color: '#1e222d' },
-        },
-        y: {
-          position: 'right',
-          ticks: {
-            color: '#787b86',
-            font: { size: 10 },
-            callback: v => '$' + v.toFixed(0),
-          },
-          grid: { color: '#1e222d', drawBorder: false },
-          border: { color: '#1e222d', dash: [4, 4] },
-        }
-      },
-      onHover: (_, elements) => {
-        if (elements.length && elements[0].datasetIndex === 0) {
-          const i = elements[0].index;
-          const labels = chart.data.labels;
-          const closes = chart.data.datasets[0].data;
-          if (i < closes.length && closes[i] !== null) {
-            document.getElementById('hoverPrice').textContent = '$' + closes[i].toFixed(2);
-          }
-        }
-      }
-    }
+    handleScroll:  { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true },
+    handleScale:   { mouseWheel: true, pinch: true, axisPressedMouseMove: true },
+    width:  chartContainer.offsetWidth,
+    height: 360,
   });
 
-  // ── Duration button logic ────────────────────────────────────────
+  // Candlestick series
+  const candleSeries = tvChart.addCandlestickSeries({
+    upColor:        '#26a69a', downColor:       '#ef5350',
+    borderUpColor:  '#26a69a', borderDownColor: '#ef5350',
+    wickUpColor:    '#26a69a', wickDownColor:   '#ef5350',
+  });
+  candleSeries.setData(CANDLE_DATA);
+
+  // Line series (hidden by default)
+  const lineSeries = tvChart.addLineSeries({
+    color: '#00bfa5', lineWidth: 2,
+    crosshairMarkerVisible: true,
+    crosshairMarkerRadius: 5,
+    lastValueVisible: true,
+    priceLineVisible: false,
+    visible: false,
+  });
+  lineSeries.setData(LINE_DATA);
+
+  // Crosshair → update header price
+  tvChart.subscribeCrosshairMove(param => {
+    if (!param.time) return;
+    const cd = param.seriesData.get(candleSeries);
+    const ld = param.seriesData.get(lineSeries);
+    const price = cd?.close ?? ld?.value;
+    if (price != null) document.getElementById('hoverPrice').textContent = '$' + price.toFixed(2);
+  });
+
+  // Resize observer
+  new ResizeObserver(entries => {
+    for (const e of entries) tvChart.applyOptions({ width: e.contentRect.width });
+  }).observe(chartContainer);
+
+  // ── Duration buttons ─────────────────────────────────────────────
   document.querySelectorAll('.dur-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.dur-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      currentDays = parseInt(btn.dataset.days);
-      const { dates, closes } = sliceData(currentDays);
-      viewDates  = dates;
-      viewCloses = closes;
-
-      chart.data.labels = [...dates, 'Prediction'];
-      chart.data.datasets[0].data = [...closes, null];
-      // Keep prediction point if it exists
-      chart.data.datasets[1].data = [
-        ...closes.map(() => null),
-        predictionValue
-      ];
-      chart.update();
+      const days = parseInt(btn.dataset.days);
+      if (!days) {
+        tvChart.timeScale().fitContent();
+      } else {
+        const last  = ALL_DATES[ALL_DATES.length - 1];
+        const from  = new Date(last);
+        from.setDate(from.getDate() - days);
+        tvChart.timeScale().setVisibleRange({
+          from: from.toISOString().split('T')[0],
+          to:   last,
+        });
+      }
     });
   });
 
-  // ── Date auto-fill ───────────────────────────────────────────────
-  document.getElementById('inp_date').max = new Date().toISOString().split('T')[0];
+  // ── Chart type toggle ────────────────────────────────────────────
+  function setChartType(type) {
+    currentChartType = type;
+    candleSeries.applyOptions({ visible: type === 'candle' });
+    lineSeries.applyOptions({   visible: type === 'line'   });
+    document.getElementById('btnCandle').classList.toggle('active', type === 'candle');
+    document.getElementById('btnLine').classList.toggle('active',   type === 'line');
+    // Re-apply prediction marker to visible series
+    if (predictionDate) updatePredictionMarker();
+  }
+  document.getElementById('btnCandle').addEventListener('click', () => setChartType('candle'));
+  document.getElementById('btnLine').addEventListener('click',   () => setChartType('line'));
 
-  const btnFetch     = document.getElementById('btnFetch');
-  const fetchText    = document.getElementById('fetchText');
-  const fetchSpinner = document.getElementById('fetchSpinner');
-  const fetchStatus  = document.getElementById('fetchStatus');
+  // ── Prediction marker ────────────────────────────────────────────
+  function updatePredictionMarker() {
+    if (!predictionDate || !predictionValue) return;
+    const marker = [{
+      time:     predictionDate,
+      position: 'aboveBar',
+      color:    '#ef5350',
+      shape:    'arrowDown',
+      text:     'Pred $' + predictionValue.toFixed(2),
+    }];
+    candleSeries.setMarkers(marker);
+    lineSeries.setMarkers(marker);
+  }
 
-  // Track the actual fetched date so we can look up the next day's real price
-  let fetchedDate = null;
+  // ── Core predict function ─────────────────────────────────────────
+  async function runPredict() {
+    const payload = {
+      open:   parseFloat(document.getElementById('inp_open').value),
+      high:   parseFloat(document.getElementById('inp_high').value),
+      low:    parseFloat(document.getElementById('inp_low').value),
+      close:  parseFloat(document.getElementById('inp_close').value),
+      volume: parseFloat(document.getElementById('inp_volume').value),
+    };
+    if (Object.values(payload).some(isNaN)) return;
 
-  btnFetch.addEventListener('click', async () => {
-    const date = document.getElementById('inp_date').value;
-    if (!date) { fetchStatus.textContent = 'Please select a date first.'; fetchStatus.className = 'fetch-status err'; return; }
+    const btn = document.getElementById('btnPredict');
+    const btnText = document.getElementById('btnText');
+    const spinner = document.getElementById('spinner');
+    const errorEl = document.getElementById('errorMsg');
+    const resultEl = document.getElementById('result');
 
-    btnFetch.disabled          = true;
-    fetchText.style.display    = 'none';
-    fetchSpinner.style.display = 'block';
-    fetchStatus.textContent    = '';
-    fetchStatus.className      = 'fetch-status';
-    fetchedDate                = null;
+    btn.disabled = true;
+    btnText.style.display = 'none';
+    spinner.style.display = 'block';
+    errorEl.style.display = 'none';
+    resultEl.style.display = 'none';
+
+    try {
+      const res  = await fetch('/predict', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+      const data = await res.json();
+      if (!res.ok || data.error) { errorEl.textContent = '⚠️ ' + (data.error || 'Prediction failed.'); errorEl.style.display = 'block'; return; }
+
+      renderResult(data);
+    } catch(e) {
+      errorEl.textContent = '⚠️ Network error: ' + e.message;
+      errorEl.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      btnText.style.display = 'inline';
+      spinner.style.display = 'none';
+    }
+  }
+
+  async function renderResult(data) {
+    const up = data.change >= 0;
+    const resultEl = document.getElementById('result');
+
+    // Fallback header
+    document.getElementById('predPrice').textContent = '$' + data.predicted_close.toFixed(2);
+    document.getElementById('changeBadge').innerHTML =
+      `<span style="color:${up?'var(--teal)':'var(--red)'}">${up?'▲':'▼'} $${Math.abs(data.change).toFixed(2)} (${Math.abs(data.change_pct).toFixed(2)}%)</span>`;
+
+    // Prediction box
+    document.getElementById('cmpPredDate').textContent  = 'Next trading day';
+    document.getElementById('cmpPredPrice').textContent = '$' + data.predicted_close.toFixed(2);
+    document.getElementById('cmpPredDelta').innerHTML   =
+      `<span style="color:${up?'#26a69a':'var(--red)'}">${up?'▲':'▼'} $${Math.abs(data.change).toFixed(2)} (${Math.abs(data.change_pct).toFixed(2)}%) vs today</span>`;
+
+    // Indicators
+    const ind = data.indicators;
+    document.getElementById('indGrid').innerHTML = [
+      ['SMA-20','$'+ind.SMA_20], ['RSI-14', ind.RSI.toFixed(1)], ['MACD', ind.MACD.toFixed(4)],
+      ['BB Upper','$'+ind.BB_upper], ['BB Lower','$'+ind.BB_lower],
+      ['Chg %', (up?'+':'')+data.change_pct.toFixed(2)+'%'],
+    ].map(([l,v]) => `<div class="ind-card"><div class="ind-label">${l}</div><div class="ind-value">${v}</div></div>`).join('');
+
+    // Chart — update prediction marker
+    predictionValue = data.predicted_close;
+    predictionDate  = fetchedDate || ALL_DATES[ALL_DATES.length - 1];
+    updatePredictionMarker();
+    document.getElementById('hoverPrice').textContent = '$' + data.predicted_close.toFixed(2);
+    const hc = document.getElementById('hoverChg');
+    hc.textContent = (up?'+':'')+data.change_pct.toFixed(2)+'%';
+    hc.className = 'chart-chg ' + (up?'chg-up':'chg-down');
+
+    resultEl.style.display = 'block';
+
+    // Real price comparison
+    const cmpSide    = document.getElementById('cmpSide');
+    const errStats   = document.getElementById('errStats');
+    const accWrap    = document.getElementById('accWrap');
+    const fallback   = document.getElementById('resultFallback');
+    const realNote   = document.getElementById('realNote');
+
+    if (fetchedDate) {
+      cmpSide.style.display  = 'grid';
+      fallback.style.display = 'none';
+      try {
+        const rRes  = await fetch('/next_close?date=' + fetchedDate);
+        const rData = await rRes.json();
+        if (rRes.ok && !rData.error) {
+          const predicted = data.predicted_close;
+          const actual    = rData.close;
+          const diff      = predicted - actual;
+          const absDiff   = Math.abs(diff);
+          const errPct    = (absDiff / actual) * 100;
+          const accuracy  = Math.max(0, 100 - errPct);
+
+          const actualBox = document.getElementById('cmpActualBox');
+          actualBox.className = 'cmp-box actual' + (errPct > 3 ? ' miss' : '');
+          document.getElementById('cmpActualDate').textContent  = rData.date;
+          document.getElementById('cmpActualPrice').textContent = '$' + actual.toFixed(2);
+          document.getElementById('cmpActualDelta').innerHTML   =
+            `<span style="color:${errPct<=1?'var(--teal)':errPct<=3?'var(--amber)':'var(--red)'}">` +
+            (errPct<=1 ? '✓ Excellent' : errPct<=3 ? '~ Close' : '✗ Off by '+errPct.toFixed(1)+'%') + '</span>';
+
+          document.getElementById('cmpMAE').textContent    = '$' + absDiff.toFixed(2);
+          document.getElementById('cmpErrPct').textContent = errPct.toFixed(2) + '%';
+          const diffEl = document.getElementById('cmpDiff');
+          diffEl.textContent = (diff>0?'+':'') + '$' + diff.toFixed(2);
+          diffEl.style.color = diff > 0 ? 'var(--red)' : 'var(--teal)';
+          errStats.style.display = 'grid';
+
+          document.getElementById('accPct').textContent = accuracy.toFixed(1) + '%';
+          const fill = document.getElementById('accFill');
+          fill.style.width      = Math.min(accuracy,100).toFixed(1) + '%';
+          fill.style.background = accuracy>=98?'#00bfa5':accuracy>=95?'#26a69a':accuracy>=90?'#f59e0b':'#ef5350';
+          accWrap.style.display = 'block';
+          realNote.textContent  = '';
+          // Add to history with actual price
+          addToHistory(data.predicted_close, actual, rData.date);
+        } else {
+          document.getElementById('cmpActualDate').textContent  = 'Unavailable';
+          document.getElementById('cmpActualPrice').textContent = 'N/A';
+          errStats.style.display = 'none';
+          accWrap.style.display  = 'none';
+          realNote.textContent   = rData.error || 'Real price not available.';
+          addToHistory(data.predicted_close, null, fetchedDate);
+        }
+      } catch(_) {
+        errStats.style.display = 'none';
+        accWrap.style.display  = 'none';
+        realNote.textContent   = 'Could not fetch real price.';
+        addToHistory(data.predicted_close, null, fetchedDate);
+      }
+    } else {
+      cmpSide.style.display  = 'none';
+      errStats.style.display = 'none';
+      accWrap.style.display  = 'none';
+      fallback.style.display = 'block';
+      realNote.textContent   = 'Tip: Pick a date above to compare prediction vs real price.';
+    }
+  }
+
+  // ── Prediction History ───────────────────────────────────────────
+  const MAX_ROWS = 15;
+  let historyData = [];  // { date, predicted, actual, errAbs, errPct, accuracy }
+
+  function renderHistory() {
+    const tbody   = document.getElementById('histBody');
+    const summary = document.getElementById('histSummary');
+    const count   = document.getElementById('histCount');
+
+    count.textContent = historyData.length + ' / ' + MAX_ROWS;
+
+    if (historyData.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="history-empty">No predictions yet — pick a date to start.</td></tr>';
+      summary.style.display = 'none';
+      return;
+    }
+
+    tbody.innerHTML = historyData.map((r, i) => {
+      const chip = r.accuracy >= 98 ? 'acc-great' : r.accuracy >= 93 ? 'acc-ok' : 'acc-poor';
+      const diffColor = r.predicted > r.actual ? 'var(--red)' : 'var(--teal)';
+      return `<tr>
+        <td style="color:var(--muted)">${i + 1}</td>
+        <td class="td-date">${r.date}</td>
+        <td class="td-pred">$${r.predicted.toFixed(2)}</td>
+        <td class="td-act">${r.actual != null ? '$'+r.actual.toFixed(2) : '—'}</td>
+        <td style="color:${diffColor}">${r.actual != null ? (r.predicted>r.actual?'+':'')+r.errAbs.toFixed(2) : '—'}</td>
+        <td>${r.actual != null ? `<span class="td-acc-chip ${chip}">${r.accuracy.toFixed(1)}%</span>` : '—'}</td>
+      </tr>`;
+    }).join('');
+
+    // Summary
+    const withActual = historyData.filter(r => r.actual != null);
+    if (withActual.length > 0) {
+      const avgAcc = withActual.reduce((s,r) => s + r.accuracy, 0) / withActual.length;
+      const avgErr = withActual.reduce((s,r) => s + r.errAbs,   0) / withActual.length;
+      const best   = withActual.reduce((a,b) => a.accuracy > b.accuracy ? a : b);
+
+      document.getElementById('sumAccuracy').textContent = avgAcc.toFixed(1) + '%';
+      document.getElementById('sumAccuracy').style.color =
+        avgAcc >= 97 ? 'var(--teal)' : avgAcc >= 93 ? 'var(--amber)' : 'var(--red)';
+      document.getElementById('sumError').textContent    = '$' + avgErr.toFixed(2);
+      document.getElementById('sumBest').textContent     = best.date.slice(5); // MM-DD
+      summary.style.display = 'grid';
+    }
+  }
+
+  function addToHistory(predicted, actual, date) {
+    // Avoid duplicate dates
+    if (historyData.find(r => r.date === date)) return;
+    // Keep max 15 rows (drop oldest)
+    if (historyData.length >= MAX_ROWS) historyData.shift();
+
+    const entry = { date, predicted, actual: null, errAbs: null, errPct: null, accuracy: null };
+    if (actual != null) {
+      const errAbs = Math.abs(predicted - actual);
+      entry.actual   = actual;
+      entry.errAbs   = errAbs;
+      entry.errPct   = (errAbs / actual) * 100;
+      entry.accuracy = Math.max(0, 100 - entry.errPct);
+    }
+    historyData.push(entry);
+    renderHistory();
+  }
+
+  document.getElementById('btnReset').addEventListener('click', () => {
+    historyData = [];
+    renderHistory();
+  });
+
+  // ── Date picker — auto-fetch + auto-predict ───────────────────────
+  let fetchedDate  = null;
+  let fetchTimeout = null;
+
+  document.getElementById('inp_date').addEventListener('change', async function() {
+    const date = this.value;
+    if (!date) return;
+
+    const status  = document.getElementById('dateStatus');
+    const fields  = ['inp_open','inp_high','inp_low','inp_close','inp_volume'];
+
+    // Show loading
+    status.className = 'date-status loading';
+    status.innerHTML = '<div class="dots"><span></span><span></span><span></span></div>&nbsp;Fetching GOOGL data…';
+    fetchedDate = null;
+    fields.forEach(id => document.getElementById(id).parentElement.classList.remove('field-filled'));
+    document.getElementById('result').style.display = 'none';
 
     try {
       const res  = await fetch('/fetch_date?date=' + date);
       const data = await res.json();
 
       if (!res.ok || data.error) {
-        fetchStatus.textContent = '⚠️ ' + data.error;
-        fetchStatus.className   = 'fetch-status err';
+        status.className = 'date-status err';
+        status.textContent = '⚠️ ' + data.error;
         return;
       }
 
@@ -767,194 +1065,27 @@
       document.getElementById('inp_low').value    = data.low;
       document.getElementById('inp_close').value  = data.close;
       document.getElementById('inp_volume').value = data.volume;
-      fetchedDate = data.date;   // store for next-close lookup
+      fetchedDate = data.date;
 
-      const msg = data.date !== date
-        ? `Filled with data for ${data.date} (next trading day after ${date}) — scaled ×20`
-        : `Filled with GOOGL data for ${data.date} — scaled ×20`;
-      fetchStatus.textContent = '✓ ' + msg;
-      fetchStatus.className   = 'fetch-status ok';
-    } catch (err) {
-      fetchStatus.textContent = '⚠️ Network error: ' + err.message;
-      fetchStatus.className   = 'fetch-status err';
-    } finally {
-      btnFetch.disabled          = false;
-      fetchText.style.display    = 'inline';
-      fetchSpinner.style.display = 'none';
+      fields.forEach(id => document.getElementById(id).parentElement.classList.add('field-filled'));
+
+      const label = data.date !== date ? `Data for ${data.date} (next trading day)` : `Data for ${data.date}`;
+      status.className = 'date-status ok';
+      status.textContent = '✓ ' + label + ' — running prediction…';
+
+      // Auto-predict immediately
+      await runPredict();
+
+      status.textContent = '✓ ' + label + ' · prediction complete';
+
+    } catch(e) {
+      status.className = 'date-status err';
+      status.textContent = '⚠️ Network error: ' + e.message;
     }
   });
 
-  // ── Form Submit ───────────────────────────────────────────────────
-  const form      = document.getElementById('predictForm');
-  const btnPredict= document.getElementById('btnPredict');
-  const btnText   = document.getElementById('btnText');
-  const spinner   = document.getElementById('spinner');
-  const resultEl  = document.getElementById('result');
-  const errorEl   = document.getElementById('errorMsg');
-
-  form.addEventListener('submit', async e => {
-    e.preventDefault();
-    errorEl.style.display  = 'none';
-    resultEl.style.display = 'none';
-
-    // Loading state
-    btnPredict.disabled   = true;
-    btnText.style.display = 'none';
-    spinner.style.display = 'block';
-
-    const payload = {
-      open:   parseFloat(document.getElementById('inp_open').value),
-      high:   parseFloat(document.getElementById('inp_high').value),
-      low:    parseFloat(document.getElementById('inp_low').value),
-      close:  parseFloat(document.getElementById('inp_close').value),
-      volume: parseFloat(document.getElementById('inp_volume').value),
-    };
-
-    try {
-      const res  = await fetch('/predict', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const data = await res.json();
-
-      if (!res.ok || data.error) {
-        errorEl.textContent  = '⚠️ ' + (data.error || 'Prediction failed.');
-        errorEl.style.display= 'block';
-        return;
-      }
-
-      // ── Render result ───────────────────────────────────────────
-      const up = data.change >= 0;
-
-      // Populate fallback header (shown when no date)
-      document.getElementById('predPrice').textContent = '$' + data.predicted_close.toFixed(2);
-      const badge = document.getElementById('changeBadge');
-      badge.textContent = (up ? '▲ ' : '▼ ') + '$' + Math.abs(data.change).toFixed(2) +
-                          ' (' + Math.abs(data.change_pct).toFixed(2) + '%)';
-      badge.className   = 'change-badge ' + (up ? 'up' : 'down');
-
-      // Populate prediction box
-      const predDate = fetchedDate
-        ? (() => { const d = new Date(fetchedDate); d.setDate(d.getDate()+1); return 'Next day est.'; })()
-        : 'Next trading day';
-      document.getElementById('cmpPredDate').textContent  = predDate;
-      document.getElementById('cmpPredPrice').textContent = '$' + data.predicted_close.toFixed(2);
-      document.getElementById('cmpPredDelta').innerHTML   =
-        `<span style="color:${up ? 'var(--teal)' : 'var(--red)'}">` +
-        (up ? '▲' : '▼') + ' $' + Math.abs(data.change).toFixed(2) +
-        ' (' + Math.abs(data.change_pct).toFixed(2) + '%) vs today</span>';
-
-      // Indicators
-      const ind   = data.indicators;
-      const indGrid = document.getElementById('indGrid');
-      indGrid.innerHTML = [
-        ['SMA-20', '$' + ind.SMA_20],
-        ['RSI-14', ind.RSI.toFixed(1)],
-        ['MACD',   ind.MACD.toFixed(4)],
-        ['BB Upper','$' + ind.BB_upper],
-        ['BB Lower','$' + ind.BB_lower],
-        ['Chg %',  (up ? '+' : '') + data.change_pct.toFixed(2) + '%'],
-      ].map(([l,v]) => `
-        <div class="ind-card">
-          <div class="ind-label">${l}</div>
-          <div class="ind-value">${v}</div>
-        </div>`).join('');
-
-      resultEl.style.display = 'block';
-
-      // Update chart prediction point
-      predictionValue = data.predicted_close;
-      chart.data.datasets[1].data = [...viewCloses.map(() => null), predictionValue];
-
-      // Update live price display
-      document.getElementById('hoverPrice').textContent = '$' + data.predicted_close.toFixed(2);
-      const hoverChg = document.getElementById('hoverChg');
-      hoverChg.textContent = (up ? '+' : '') + data.change_pct.toFixed(2) + '%';
-      hoverChg.className = 'chg ' + (up ? 'up' : 'down');
-
-      chart.update();
-
-      // ── Real price comparison ─────────────────────────────────────
-      const compareSide  = document.getElementById('compareSide');
-      const cmpErrorRow  = document.getElementById('cmpErrorRow');
-      const accuracyWrap = document.getElementById('accuracyWrap');
-      const resultHeader = document.getElementById('resultHeader');
-      const realNote     = document.getElementById('realPriceNote');
-
-      if (fetchedDate) {
-        compareSide.style.display  = 'grid';
-        resultHeader.style.display = 'none';
-
-        try {
-          const rRes  = await fetch('/next_close?date=' + fetchedDate);
-          const rData = await rRes.json();
-
-          if (rRes.ok && !rData.error) {
-            const predicted = data.predicted_close;
-            const actual    = rData.close;
-            const diff      = predicted - actual;
-            const absDiff   = Math.abs(diff);
-            const errPct    = (absDiff / actual) * 100;
-            const accuracy  = Math.max(0, 100 - errPct);
-            const overshot  = diff > 0;
-
-            // Actual box
-            const actualBox = document.getElementById('cmpActualBox');
-            actualBox.className = 'cmp-box actual' + (errPct > 2 ? ' worse' : '');
-            document.getElementById('cmpActualTag').textContent   = 'Actual Close';
-            document.getElementById('cmpActualDate').textContent  = rData.date;
-            document.getElementById('cmpActualPrice').textContent = '$' + actual.toFixed(2);
-            document.getElementById('cmpActualDelta').innerHTML   =
-              `<span style="color:${errPct <= 1 ? 'var(--green)' : errPct <= 3 ? 'var(--teal)' : 'var(--red)'}">` +
-              (errPct <= 1 ? '✓ Excellent match' : errPct <= 3 ? '~ Close match' : '✗ Off by ' + errPct.toFixed(1) + '%') +
-              '</span>';
-
-            // Error row
-            document.getElementById('cmpMAE').textContent    = '$' + absDiff.toFixed(2);
-            document.getElementById('cmpErrPct').textContent = errPct.toFixed(2) + '%';
-            const diffEl = document.getElementById('cmpDiff');
-            diffEl.textContent  = (overshot ? '+' : '') + '$' + diff.toFixed(2);
-            diffEl.style.color  = overshot ? 'var(--red)' : 'var(--green)';
-            cmpErrorRow.style.display = 'flex';
-
-            // Accuracy bar
-            document.getElementById('accuracyPct').textContent = accuracy.toFixed(1) + '%';
-            const fill = document.getElementById('accuracyFill');
-            fill.style.width      = Math.min(accuracy, 100).toFixed(1) + '%';
-            fill.style.background = accuracy >= 98 ? '#26a69a' : accuracy >= 95 ? '#2A9D8F' : accuracy >= 90 ? '#f59e0b' : '#ef5350';
-            accuracyWrap.style.display = 'block';
-            realNote.textContent = '';
-
-          } else {
-            document.getElementById('cmpActualDate').textContent  = 'Unavailable';
-            document.getElementById('cmpActualPrice').textContent = 'N/A';
-            cmpErrorRow.style.display  = 'none';
-            accuracyWrap.style.display = 'none';
-            realNote.textContent = rData.error || 'Could not fetch real price.';
-          }
-        } catch (_) {
-          cmpErrorRow.style.display  = 'none';
-          accuracyWrap.style.display = 'none';
-          realNote.textContent = 'Network error fetching real price.';
-        }
-      } else {
-        compareSide.style.display  = 'none';
-        cmpErrorRow.style.display  = 'none';
-        accuracyWrap.style.display = 'none';
-        resultHeader.style.display = 'flex';
-        realNote.textContent = 'Tip: Use "Auto-Fill" with a date to compare prediction vs real price.';
-      }
-
-    } catch (err) {
-      errorEl.textContent   = '⚠️ Network error: ' + err.message;
-      errorEl.style.display = 'block';
-    } finally {
-      btnPredict.disabled   = false;
-      btnText.style.display = 'inline';
-      spinner.style.display = 'none';
-    }
-  });
+  // Manual predict button
+  document.getElementById('btnPredict').addEventListener('click', runPredict);
 </script>
 
 </body>

@@ -32,11 +32,20 @@ last_row   = data["last_row"]
 # ── Load full CSV history for chart ──────────────────────────────────
 CSV_PATH = os.path.join(os.path.dirname(__file__), "GoogleStockPrice_Train.csv")
 _csv = pd.read_csv(CSV_PATH)
-_csv["Close"] = pd.to_numeric(_csv["Close"].astype(str).str.replace(",", ""), errors="coerce")
-_csv["Date"]  = pd.to_datetime(_csv["Date"])
-_csv = _csv.dropna(subset=["Close"]).sort_values("Date")
+for col in ["Open", "High", "Low", "Close"]:
+    _csv[col] = pd.to_numeric(_csv[col].astype(str).str.replace(",", ""), errors="coerce")
+_csv["Date"] = pd.to_datetime(_csv["Date"])
+_csv = _csv.dropna(subset=["Open", "High", "Low", "Close"]).sort_values("Date")
+
+# Fix pre-April 2014 data: Open/High/Low were sourced split-adjusted
+# (÷2) while Close was not — multiply back to match Close scale
+_split = pd.Timestamp("2014-04-02")
+_mask  = _csv["Date"] < _split
+_csv.loc[_mask, ["Open", "High", "Low"]] *= 2
+
 all_dates  = _csv["Date"].dt.strftime("%Y-%m-%d").tolist()
 all_closes = _csv["Close"].round(2).tolist()
+all_ohlcv  = _csv[["Open", "High", "Low", "Close"]].round(2).values.tolist()
 
 
 def compute_indicators(open_, high, low, close, volume,
@@ -89,6 +98,7 @@ def index():
         recent_closes=recent_closes,
         all_dates=all_dates,
         all_closes=all_closes,
+        all_ohlcv=all_ohlcv,
     )
 
 
