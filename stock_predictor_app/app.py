@@ -159,6 +159,9 @@ def fetch_date():
         if df.empty:
             return jsonify({"error": f"No trading data found for {date_str}. It may be a weekend or holiday."}), 404
 
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.droplevel(1)
+
         # Use the first available row (the requested date or next trading day)
         row = df.iloc[0]
         actual_date = df.index[0].strftime("%Y-%m-%d")
@@ -191,6 +194,9 @@ def next_close():
                          end=end.strftime("%Y-%m-%d"), progress=False, auto_adjust=True)
         if df.empty:
             return jsonify({"error": "No trading data found after this date."}), 404
+
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.droplevel(1)
 
         row         = df.iloc[0]
         actual_date = df.index[0].strftime("%Y-%m-%d")
