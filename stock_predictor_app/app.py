@@ -206,5 +206,6 @@ def next_close():
 
 
 if __name__ == "__main__":
-    print("\n🚀  Google Stock Predictor running at http://localhost:5000\n")
-    app.run(debug=True, port=5001)
+    port = int(os.environ.get("PORT", 5001))
+    print(f"\n  Google Stock Predictor running at http://localhost:{port}\n")
+    app.run(debug=False, host="0.0.0.0", port=port)
